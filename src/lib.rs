@@ -4,11 +4,12 @@ use std::{fs, io, error};
 pub struct Config{
     pub query_string: String,
     pub file_path: String,
+    pub ignore_case:bool,
 }
 // Implement Config struct methods
 impl Config {
     // Function to build a Config struct instance
-    pub fn build(args: &[String])-> Result<Config, &'static str>{
+    pub fn build(args: &[String], ignore_case: bool)-> Result<Config, &'static str>{
         if args.len() < 3{
             return Err("Not enough arguments");
         }
@@ -16,7 +17,7 @@ impl Config {
         let query_string = args[1].clone();
         let file_path = args[2].clone();
         // Return a Config struct instance
-        Ok(Config { query_string, file_path})
+        Ok(Config { query_string, file_path, ignore_case})
     }
 }
 // Funciton to read file contents
@@ -38,6 +39,22 @@ fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str>{
     return result;
 }
 
+fn search_case_insensitive<'a>(
+    query: &str,
+    contents: &'a str
+) -> Vec<&'a str> {
+    let query = query.to_lowercase();
+    let mut result: Vec<&str> = Vec::new();
+
+    for line in contents.lines(){
+        if line.to_lowercase().contains(&query){
+            result.push(line);
+        }
+    }
+
+    return result;
+}
+
 // Public function to run the program logic
 pub fn run (config: Config)-> Result<(), Box<dyn error::Error>>{
     println!("Searching for: {} in file: {}", config.query_string, config.file_path);
@@ -45,7 +62,13 @@ pub fn run (config: Config)-> Result<(), Box<dyn error::Error>>{
     let file_contents = read_file_contents(&config.file_path)?;
     // println!("File contents: \n {}", file_contents);
     // Search for query string in file contents
-    let results = search(&config.query_string, &file_contents);
+    
+    let results = if config.ignore_case {  
+        println!("Ignoring case");
+        search_case_insensitive(&config.query_string, &file_contents)
+    }else{
+        search(&config.query_string, &file_contents)
+    };
     if results.len()==0{
         return Err("Query string not found, try again".into());
     }
@@ -89,6 +112,38 @@ I'm want to be a Rustacean!";
         assert_eq!(
             vec!["Rust:", "I'm want to be a Rustacean!"],
             search(query, contents)
+        );
+    }
+
+    #[test]
+    fn case_insensitive_one_result(){
+        let query = "me";
+        let contents = "\
+Rust:
+safe,fast,productive.
+Pick three.
+Trust me.
+I'm want to be a Rustacean!";
+        
+        assert_eq!(
+            vec!["Trust me."],
+            search_case_insensitive(query, contents)
+        );
+    }
+
+    #[test]
+    fn case_insensitive_multiple_results(){
+        let query = "rUsT";
+        let contents = "\
+Rust:
+safe,fast,productive.
+Pick three.
+Trust me.
+I'm want to be a Rustacean!";
+        
+        assert_eq!(
+            vec!["Rust:", "Trust me.", "I'm want to be a Rustacean!"],
+            search_case_insensitive(query, contents)
         );
     }
 }
