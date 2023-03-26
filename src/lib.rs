@@ -64,7 +64,7 @@ pub fn run (config: Config)-> Result<(), Box<dyn error::Error>>{
     // Search for query string in file contents
     
     let results = if config.ignore_case {  
-        println!("Ignoring case");
+        println!("Ignoring case search");
         search_case_insensitive(&config.query_string, &file_contents)
     }else{
         search(&config.query_string, &file_contents)
