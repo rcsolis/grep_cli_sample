@@ -9,13 +9,23 @@ pub struct Config{
 // Implement Config struct methods
 impl Config {
     // Function to build a Config struct instance
-    pub fn build(args: &[String], ignore_case: bool)-> Result<Config, &'static str>{
-        if args.len() < 3{
-            return Err("Not enough arguments");
-        }
-        // Save arguments in variables
-        let query_string = args[1].clone();
-        let file_path = args[2].clone();
+    pub fn build(
+        mut args: impl Iterator<Item = String>,
+        ignore_case: bool
+    )-> Result<Config, &'static str>{
+        // Ignore the first element
+        args.next();
+
+        // Get query string
+        let query_string = match args.next(){
+            Some(arg) => arg,
+            None => return Err("Didn't get a query string"),
+        };
+        // Get file path
+        let file_path = match args.next(){
+            Some(arg) => arg,
+            None => return Err("Didn't get a file path"),
+        };
         // Return a Config struct instance
         Ok(Config { query_string, file_path, ignore_case})
     }
@@ -27,16 +37,16 @@ fn read_file_contents(file_path: &str)-> Result<String, io::Error>{
 }
 // Function to search for a query string in a file contents
 fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str>{
-
-    let mut result: Vec<&str> = Vec::new();
-
-    for line in contents.lines(){
-        if line.contains(query){
-            result.push(line);
-        }
-    }
-
-    return result;
+    // let mut result: Vec<&str> = Vec::new();
+    // for line in contents.lines(){
+    //     if line.contains(query){
+    //         result.push(line);
+    //     }
+    // }
+    // return result;
+    contents.lines()
+    .filter(|line| line.contains(query))
+    .collect()
 }
 
 fn search_case_insensitive<'a>(
